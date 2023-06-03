@@ -15,12 +15,14 @@ export class Dropzone extends Component {
         this.isActive = true;
 
         this.url = this.$opts.url;
+        this.method = (this.$opts.method || 'post').toUpperCase();
         this.successMessage = this.$opts.successMessage;
         this.errorMessage = this.$opts.errorMessage;
         this.uploadLimitMb = Number(this.$opts.uploadLimit);
         this.uploadLimitMessage = this.$opts.uploadLimitMessage;
         this.zoneText = this.$opts.zoneText;
         this.fileAcceptTypes = this.$opts.fileAccept;
+        this.allowMultiple = this.$opts.allowMultiple === 'true';
 
         this.setupListeners();
     }
@@ -83,7 +85,12 @@ export class Dropzone extends Component {
     }
 
     manualSelectHandler() {
-        const input = elem('input', {type: 'file', style: 'left: -400px; visibility: hidden; position: fixed;', accept: this.fileAcceptTypes});
+        const input = elem('input', {
+            type: 'file',
+            style: 'left: -400px; visibility: hidden; position: fixed;',
+            accept: this.fileAcceptTypes,
+            multiple: this.allowMultiple ? '' : null,
+        });
         this.container.append(input);
         input.click();
         input.addEventListener('change', () => {
@@ -161,6 +168,9 @@ export class Dropzone extends Component {
     startXhrForUpload(upload) {
         const formData = new FormData();
         formData.append('file', upload.file, upload.file.name);
+        if (this.method !== 'POST') {
+            formData.append('_method', this.method);
+        }
         const component = this;
 
         const req = window.$http.createXMLHttpRequest('POST', this.url, {

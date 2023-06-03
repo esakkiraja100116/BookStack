@@ -10,7 +10,11 @@ export function elem(tagName, attrs = {}, children = []) {
     const el = document.createElement(tagName);
 
     for (const [key, val] of Object.entries(attrs)) {
-        el.setAttribute(key, val);
+        if (val === null) {
+            el.removeAttribute(key);
+        } else {
+            el.setAttribute(key, val);
+        }
     }
 
     for (const child of children) {
@@ -71,22 +75,41 @@ export function onSelect(elements, callback) {
 }
 
 /**
- * Listen to enter press on the given element(s).
+ * Listen to key press on the given element(s).
+ * @param {String} key
  * @param {HTMLElement|Array} elements
  * @param {function} callback
  */
-export function onEnterPress(elements, callback) {
+function onKeyPress(key, elements, callback) {
     if (!Array.isArray(elements)) {
         elements = [elements];
     }
 
     const listener = event => {
-        if (event.key === 'Enter') {
+        if (event.key === key) {
             callback(event);
         }
     };
 
-    elements.forEach(e => e.addEventListener('keypress', listener));
+    elements.forEach(e => e.addEventListener('keydown', listener));
+}
+
+/**
+ * Listen to enter press on the given element(s).
+ * @param {HTMLElement|Array} elements
+ * @param {function} callback
+ */
+export function onEnterPress(elements, callback) {
+    onKeyPress('Enter', elements, callback);
+}
+
+/**
+ * Listen to escape press on the given element(s).
+ * @param {HTMLElement|Array} elements
+ * @param {function} callback
+ */
+export function onEscapePress(elements, callback) {
+    onKeyPress('Escape', elements, callback);
 }
 
 /**

@@ -3,6 +3,7 @@
 namespace BookStack\Entities\Controllers;
 
 use BookStack\Activity\Models\View;
+use BookStack\Activity\Tools\CommentTree;
 use BookStack\Entities\Models\Page;
 use BookStack\Entities\Repos\PageRepo;
 use BookStack\Entities\Tools\BookContents;
@@ -23,16 +24,10 @@ use Throwable;
 
 class PageController extends Controller
 {
-    protected PageRepo $pageRepo;
-    protected ReferenceFetcher $referenceFetcher;
-
-    /**
-     * PageController constructor.
-     */
-    public function __construct(PageRepo $pageRepo, ReferenceFetcher $referenceFetcher)
-    {
-        $this->pageRepo = $pageRepo;
-        $this->referenceFetcher = $referenceFetcher;
+    public function __construct(
+        protected PageRepo $pageRepo,
+        protected ReferenceFetcher $referenceFetcher
+    ) {
     }
 
     /**
@@ -140,15 +135,10 @@ class PageController extends Controller
 
         $pageContent = (new PageContent($page));
         $page->html = $pageContent->render();
-        $sidebarTree = (new BookContents($page->book))->getTree();
         $pageNav = $pageContent->getNavigation($page->html);
 
-        // Check if page comments are enabled
-        $commentsEnabled = !setting('app-disable-comments');
-        if ($commentsEnabled) {
-            $page->load(['comments.createdBy']);
-        }
-
+        $sidebarTree = (new BookContents($page->book))->getTree();
+        $commentTree = (new CommentTree($page));
         $nextPreviousLocator = new NextPreviousContentLocator($page, $sidebarTree);
 
         View::incrementFor($page);
@@ -159,7 +149,7 @@ class PageController extends Controller
             'book'            => $page->book,
             'current'         => $page,
             'sidebarTree'     => $sidebarTree,
-            'commentsEnabled' => $commentsEnabled,
+            'commentTree'     => $commentTree,
             'pageNav'         => $pageNav,
             'next'            => $nextPreviousLocator->getNext(),
             'previous'        => $nextPreviousLocator->getPrevious(),
@@ -393,7 +383,7 @@ class PageController extends Controller
         }
 
         try {
-            $parent = $this->pageRepo->move($page, $entitySelection);
+            $this->pageRepo->move($page, $entitySelection);
         } catch (PermissionsException $exception) {
             $this->showPermissionError();
         } catch (Exception $exception) {
@@ -401,8 +391,6 @@ class PageController extends Controller
 
             return redirect()->back();
         }
-
-        $this->showSuccessNotification(trans('entities.pages_move_success', ['parentName' => $parent->name]));
 
         return redirect($page->getUrl());
     }

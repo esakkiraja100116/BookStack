@@ -10,11 +10,9 @@ use Illuminate\Validation\ValidationException;
 
 class CommentController extends Controller
 {
-    protected $commentRepo;
-
-    public function __construct(CommentRepo $commentRepo)
-    {
-        $this->commentRepo = $commentRepo;
+    public function __construct(
+        protected CommentRepo $commentRepo
+    ) {
     }
 
     /**
@@ -43,7 +41,13 @@ class CommentController extends Controller
         $this->checkPermission('comment-create-all');
         $comment = $this->commentRepo->create($page, $request->get('text'), $request->get('parent_id'));
 
-        return view('comments.comment', ['comment' => $comment]);
+        return view('comments.comment-branch', [
+            'readOnly' => false,
+            'branch' => [
+                'comment' => $comment,
+                'children' => [],
+            ]
+        ]);
     }
 
     /**
@@ -63,7 +67,7 @@ class CommentController extends Controller
 
         $comment = $this->commentRepo->update($comment, $request->get('text'));
 
-        return view('comments.comment', ['comment' => $comment]);
+        return view('comments.comment', ['comment' => $comment, 'readOnly' => false]);
     }
 
     /**
